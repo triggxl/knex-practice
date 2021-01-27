@@ -25,7 +25,6 @@ searchItemsThatContainText('snack')
 
 /*WRITE OUT REMAINING DRILLS AND THEN LOOK AT SOLUTION */
 // 2. Get all items paginated
-
 function paginateProducts(page) {
   const productsPerPage = 6;
   const offset = productsPerPage * (page -1)
@@ -58,9 +57,9 @@ function itemsAfterSelectedDate(daysAgo) {
 }
 
 itemsAfterSelectedDate(30)
+
 // 4. Get the total cost for each category
 // select sum from groupBy then
-
 function totalCostPerCat() {
   knexInstance
   .select('*')

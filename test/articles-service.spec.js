@@ -7,14 +7,20 @@ describe(`Articles service object`, () => {
    //test data for getAllArticles to later check resolve
    let testArticles = [
      {
+       id: 1,
+       date_published: new Date('2029-01-22T16:28:32.615Z'),
        title: `First test post!`,
        content: `Lorem ipsum dolor sit amet, consectetur adipisicing elit. Natus consequuntur deserunt commodi, nobis qui inventore corrupti iusto aliquid debitis unde non.Adipisci, pariatur.Molestiae, libero esse hic adipisci autem neque ?`
      },
      {
+       id: 2,
+       date_published: new Date('2100-05-22T16:28:32.615Z'),
        title: `Second test post!`,
        content: `Lorem ipsum dolor sit amet, consectetur adipisicing elit. Natus consequuntur deserunt commodi, nobis qui inventore corrupti iusto aliquid debitis unde non.Adipisci, pariatur.Molestiae, libero esse hic adipisci autem neque ?`
      },
      {
+       id: 3,
+       date_published: new Date('1919-12-22T16:28:32.615Z'),
        title: `Third test post!`,
        content: `Lorem ipsum dolor sit amet, consectetur adipisicing elit. Natus consequuntur deserunt commodi, nobis qui inventore corrupti iusto aliquid debitis unde non.Adipisci, pariatur.Molestiae, libero esse hic adipisci autem neque ?`
      }  
@@ -25,20 +31,87 @@ describe(`Articles service object`, () => {
        connection: process.env.TEST_DB_URL
      })
    })
-   //insert test articles into test database before tests
-   before(() => {
-     return db
-      .into('blogful_articles')
-      .insert(testArticles)
-   })
-   after(()=> db.destroy())
-   describe(`getAllArticles()`, () => {
-      it(`resolves all articles from 'blogful_articles' table`, () => {
-      // test that ArticlesService.getAllArticles gets data from table
-      return ArticlesService.getAllArticles()
-        .then(actual => {
-          expect(actual).to.eql(testArticles)       
+   //remove all data from table before new test
+   before(() => db('blogful_articles').truncate())
+   context( `Given 'blogful_articles' has data`, () => {
+    beforeEach(() => {
+      return db
+       .into('blogful_articles')
+       .insert(testArticles)
+    })
+    //close database connection
+    after(() => db.destroy())
+    //remove data after each test
+    afterEach(() => db('blogful_articles').truncate())
+    it(`getAllArticles() resolves all articles from 'blogful_articles' table`, () => {
+     // test that ArticlesService.getAllArticles gets data from table
+     return ArticlesService.getAllArticles(db)
+       .then(actual => {
+         expect(actual).to.eql(testArticles)       
+       })
+    })
+    it(`updateArticle() updates an article from the 'blogful_articles' table`, () => {
+      const idOfArticleToUpdate = 3
+      const newArticleData = {
+        title: 'updated title',
+        content: 'updated content',
+        data_published: new Date()
+      }
+      return ArticlesService.updateArtice(db, idOfArticleToUpdate, newArticleData)
+        .then(article => {
+          expect(article).to.eql({
+            id: idOfArticleToUpdate,
+            ...newArticleData
+          })
         })
-     })
+    })
+    it(`deleteArticle() removes an article by id from 'blogful_articles' table`, () => {
+      const articleId = 3
+      return ArticlesService.deleteArticle(db, articleId)
+      .then(() => {
+        //copy test articles array without the deleted article
+        const expected = testArticles.filter(article => article.id !== articleId)
+        expect(allArticles).to.eql(expected)
+      })
+    })
+  })
+  it(`getById() resolves an article by id from 'blogful_articles' table`, () => {
+    const thirdId = 3
+    const thirdTestArticle = testArticles[thirdId -1]
+    return ArticlesService.getById(db, thirdId)
+      .then(actual => {
+        expect(actual).to.eql({
+          id: thirdId,
+          title: thirdTestArticle.title,
+          content: thirdTestArticle.content,
+          data_published: thirdTestArticle.date_published
+        })
+      })
+  })
+  context(`Given 'blogful_articles' has no data`, () => {
+    it(`getAllArticles() resolves an empty array`, () => {
+      return ArticlesService.getAllArticles(db)
+      .then(actual => {
+        expect(actual).to.eql([])
+      })
+    })
+    it(`insertArticle() inserts a new article and resolves the new articel with an 'id'`, () => {
+      //newly inserted article
+      const newArticle = {
+        title: 'Test new title', 
+        content: 'Test new content',
+        date_published: new Date('2020-01-01T00:00:00.000Z')
+      }
+      // insert the new article, inject Knex instance and pass the new article object
+      return ArticlesService.insertArticle(db, newArticle)
+        .then(actual => {
+          expect(actual).to.eql({
+            id: 1,
+            title: newArticle.title,
+            content: newArticle.content,
+            data_published: newArticle.data_published
+          })
+        })
+    })
   })
 })

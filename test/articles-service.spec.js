@@ -33,16 +33,16 @@ describe(`Articles service object`, () => {
    })
    //remove all data from table before new test
    before(() => db('blogful_articles').truncate())
-   context( `Given 'blogful_articles' has data`, () => {
+   //close database connection
+   after(() => db.destroy())
+   //remove data after each test
+   afterEach(() => db('blogful_articles').truncate())
+    context( `Given 'blogful_articles' has data`, () => {
     beforeEach(() => {
       return db
-       .into('blogful_articles')
-       .insert(testArticles)
+        .into('blogful_articles')
+        .insert(testArticles)
     })
-    //close database connection
-    after(() => db.destroy())
-    //remove data after each test
-    afterEach(() => db('blogful_articles').truncate())
     it(`getAllArticles() resolves all articles from 'blogful_articles' table`, () => {
      // test that ArticlesService.getAllArticles gets data from table
      return ArticlesService.getAllArticles(db)
@@ -55,9 +55,10 @@ describe(`Articles service object`, () => {
       const newArticleData = {
         title: 'updated title',
         content: 'updated content',
-        data_published: new Date()
+        date_published: new Date()
       }
-      return ArticlesService.updateArtice(db, idOfArticleToUpdate, newArticleData)
+      return ArticlesService.updateArticle(db, idOfArticleToUpdate, newArticleData)
+        .then(() => ArticlesService.getById(db, idOfArticleToUpdate))
         .then(article => {
           expect(article).to.eql({
             id: idOfArticleToUpdate,
@@ -68,7 +69,8 @@ describe(`Articles service object`, () => {
     it(`deleteArticle() removes an article by id from 'blogful_articles' table`, () => {
       const articleId = 3
       return ArticlesService.deleteArticle(db, articleId)
-      .then(() => {
+      .then(() => ArticlesService.getAllArticles(db))
+      .then((allArticles) => {
         //copy test articles array without the deleted article
         const expected = testArticles.filter(article => article.id !== articleId)
         expect(allArticles).to.eql(expected)
@@ -84,8 +86,11 @@ describe(`Articles service object`, () => {
           id: thirdId,
           title: thirdTestArticle.title,
           content: thirdTestArticle.content,
-          data_published: thirdTestArticle.date_published
+          date_published: thirdTestArticle.date_published
         })
+        console.log(actual)
+        //add return statement? https://stackoverflow.com/questions/40065151/chai-related-error-message-assertionerror-expected-undefined-to-deeply-equal
+        // return ArticlesService(db, thirdId)
       })
   })
   context(`Given 'blogful_articles' has no data`, () => {
@@ -104,12 +109,12 @@ describe(`Articles service object`, () => {
       }
       // insert the new article, inject Knex instance and pass the new article object
       return ArticlesService.insertArticle(db, newArticle)
-        .then(actual => {
+        .then((actual) => {
           expect(actual).to.eql({
             id: 1,
             title: newArticle.title,
             content: newArticle.content,
-            data_published: newArticle.data_published
+            date_published: new Date(newArticle.date_published)
           })
         })
     })
